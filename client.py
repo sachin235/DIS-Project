@@ -1,8 +1,11 @@
+# user 54321
+
 import socket
 import os
 import subprocess
 
-my_secret_key = 15
+print("Enter your key")
+my_secret_key = int(input())
 
 s = socket.socket()
 host = '192.168.1.108'
@@ -54,8 +57,14 @@ def help():
 	print("quit: To end connection to KDC and exit")
 
 def connect():
-	ss = socket.socket()
-	ss.connect((server_ip, server_port))
+	try:
+		ss = socket.socket()
+		print(server_ip)
+		print(server_port)
+		ss.connect((server_ip, server_port))
+	except Exception as e:
+		print(e)
+		return
 
 	print("Sending the encrypted session key")
 	ss.send(str.encode(message_for_server))
@@ -98,18 +107,23 @@ def connect():
 while True:
 	cmd = input("turtle> ")
 
-	if cmd == "ls":
+	if cmd[:3] == "set":
 		s.send(str.encode(cmd))
+
+	elif cmd == "ls":
+		s.send(str.encode(encrypt(cmd, my_secret_key)))
 		server_response = s.recv(20480).decode("utf-8")
+		server_response = decrypt(server_response, my_secret_key)
 		print(server_response)
 
 	elif cmd[:5] == "getip":
-		s.send(str.encode(cmd))
+		s.send(str.encode(encrypt(cmd, my_secret_key)))
 		server_ip = s.recv(20480).decode("utf-8")
+		server_ip = decrypt(server_ip, my_secret_key)
 		print(server_ip)
 
 	elif cmd[:6] == "getkey":
-		s.send(str.encode(cmd))
+		s.send(str.encode(encrypt(cmd, my_secret_key)))
 		kdc_response = s.recv(20480).decode("utf-8")
 		kdc_response = decrypt(kdc_response, my_secret_key)
 		print(kdc_response)
@@ -129,6 +143,6 @@ while True:
 		connect()
 
 	elif cmd == "quit":
-		s.send(str.encode("quit"))
+		s.send(str.encode(encrypt("quit", my_secret_key)))
 		s.close()
 		break

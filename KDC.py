@@ -7,11 +7,13 @@ from queue import Queue
 NUMBER_OF_THREADS = 2
 JOB_NUMBER = [1, 2]
 queue = Queue()
+
 all_connections = []
 all_address = []
+all_client_id = []
 
 map_server_key = {'192.168.1.108': 14} # IP address of the server and respective key, key is not a multiple 10
-map_client_key = {'12345': 15} #User ID of size 5 and respective key
+map_client_key = {'12345': 15, '54321': 16} #User ID of size 5 and respective key
 
 map_file_name_server = {'example.txt': '192.168.1.108', 'new.txt': '192.168.1.108'} # File name to respective server
 
@@ -88,6 +90,7 @@ def accepting_connections():
 
 			all_connections.append(conn)
 			all_address.append(address)
+			all_client_id.append(None)
 
 			print("Connection has been established: " + address[0] + " Port " + str(address[1]))
 
@@ -131,26 +134,37 @@ def listen_for_requests():
 		try:
 			#conn.send(str.encode("Is Active"))
 			#conn.settimeout(2.0)
-			print(str(all_address[i][0]) + " " + str(all_address[i][1]))
+			#print(str(all_address[i][0]) + " " + str(all_address[i][1]))
 			conn.settimeout(1)
 			client_response = conn.recv(20480).decode("utf-8")
+
+			if client_response[:3] == "set":
+				all_client_id[i] = client_response[4:]
+				continue
+
+			if all_client_id[i] is None or map_client_key[all_client_id[i]] is None:
+				conn.send(str.encode("Please set a valid User ID first"))
+				continue
+
+			client_key = map_client_key[all_client_id[i]]
+			client_response = decrypt(client_response, client_key)
 			print(client_response)
 
 			if client_response == "ls":
-				conn.send(str.encode(str(map_file_name_server.keys())))
+				conn.send(str.encode(encrypt(str(map_file_name_server.keys()), client_key)))
 
 			elif client_response[:5] == "getip":
 				if map_file_name_server[client_response[6:]] is not None:
-					conn.send(str.encode(map_file_name_server[client_response[6:].decode("utf-8")]))
+					conn.send(str.encode(encrypt(map_file_name_server[client_response[6:]], client_key)))
 				else:
-					conn.send(str.encode("Invalid File Name"))
+					conn.send(str.encode(encrypt("Invalid File Name", client_key)))
 
 			elif client_response[:6] == "getkey":
 				if map_client_key[client_response[10:15]] is None:
-					conn.send(str.encode("Invalid User ID"))
+					conn.send(str.encode(encrypt("Invalid User ID", client_key)))
 					continue
 				elif map_server_key[client_response[16:]] is None :
-					conn.send(str.encode("Invalid IP address"))
+					conn.send(str.encode(encrypt("Invalid IP address", client_key)))
 					continue
 				else:
 					message = create_session(client_response)
@@ -161,12 +175,13 @@ def listen_for_requests():
 				conn.close()
 				del all_connections[i]
 				del all_address[i]
+				del all_client_id[i]
 				break
 			else:
-				conn.send("Invalid request!")
+				conn.send(encrypt("Invalid request!", client_key))
 
 		except Exception as e:
-			print(e)
+			#print(e)
 			#del all_connections[i]
 			#del all_address[i]
 			continue
