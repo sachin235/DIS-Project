@@ -1,8 +1,13 @@
+# user 54321
+
 import socket
 import os
 import subprocess
 
-my_secret_key = 15
+print("Enter your key")
+my_secret_key = int(input())
+
+print("To know all the commands, type in help!")
 
 s = socket.socket()
 host = '192.168.1.108'
@@ -48,14 +53,21 @@ def decrypt(s, key):
 def help():
 	print("Commands:")
 	print("ls: To list all the files")
+	print("set <User ID>: Should be done before any communication with KDC")
 	print("getip <file_name>: To get the IP address of the file server that stores the file")
 	print("getkey <Nonce> <Your User ID> <server IP address>: To get the session key of that server") #Use Nonce of two digits
 	print("connect <Session key> <IP address of the server>: To the connect to the respective server")
 	print("quit: To end connection to KDC and exit")
 
 def connect():
-	ss = socket.socket()
-	ss.connect((server_ip, server_port))
+	try:
+		ss = socket.socket()
+		print(server_ip)
+		print(server_port)
+		ss.connect((server_ip, server_port))
+	except Exception as e:
+		print(e)
+		return
 
 	print("Sending the encrypted session key")
 	ss.send(str.encode(message_for_server))
@@ -98,21 +110,32 @@ def connect():
 while True:
 	cmd = input("turtle> ")
 
-	if cmd == "ls":
+	if cmd == "help":
+		help()
+	elif cmd[:3] == "set":
 		s.send(str.encode(cmd))
+
+	elif cmd == "ls":
+		s.send(str.encode(encrypt(cmd, my_secret_key)))
 		server_response = s.recv(20480).decode("utf-8")
+		server_response = decrypt(server_response, my_secret_key)
 		print(server_response)
 
 	elif cmd[:5] == "getip":
-		s.send(str.encode(cmd))
+		s.send(str.encode(encrypt(cmd, my_secret_key)))
 		server_ip = s.recv(20480).decode("utf-8")
+		server_ip = decrypt(server_ip, my_secret_key)
+		if(server_ip[:7] == "Invalid"):
+			continue
 		print(server_ip)
 
 	elif cmd[:6] == "getkey":
-		s.send(str.encode(cmd))
+		s.send(str.encode(encrypt(cmd, my_secret_key)))
 		kdc_response = s.recv(20480).decode("utf-8")
 		kdc_response = decrypt(kdc_response, my_secret_key)
 		print(kdc_response)
+		if(kdc_response[:7] == "Invalid"):
+			continue
 		kdc_response = kdc_response.strip('][').split(', ') 
 
 		nonce = int(kdc_response[0].replace('\'',''))
@@ -129,6 +152,6 @@ while True:
 		connect()
 
 	elif cmd == "quit":
-		s.send(str.encode("quit"))
+		s.send(str.encode(encrypt("quit", my_secret_key)))
 		s.close()
 		break
