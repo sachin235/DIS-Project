@@ -7,6 +7,8 @@ import subprocess
 print("Enter your key")
 my_secret_key = int(input())
 
+print("To know all the commands, type in help!")
+
 s = socket.socket()
 host = '192.168.1.108'
 port = 9999
@@ -51,6 +53,7 @@ def decrypt(s, key):
 def help():
 	print("Commands:")
 	print("ls: To list all the files")
+	print("set <User ID>: Should be done before any communication with KDC")
 	print("getip <file_name>: To get the IP address of the file server that stores the file")
 	print("getkey <Nonce> <Your User ID> <server IP address>: To get the session key of that server") #Use Nonce of two digits
 	print("connect <Session key> <IP address of the server>: To the connect to the respective server")
@@ -107,7 +110,9 @@ def connect():
 while True:
 	cmd = input("turtle> ")
 
-	if cmd[:3] == "set":
+	if cmd == "help":
+		help()
+	elif cmd[:3] == "set":
 		s.send(str.encode(cmd))
 
 	elif cmd == "ls":
@@ -120,6 +125,8 @@ while True:
 		s.send(str.encode(encrypt(cmd, my_secret_key)))
 		server_ip = s.recv(20480).decode("utf-8")
 		server_ip = decrypt(server_ip, my_secret_key)
+		if(server_ip[:7] == "Invalid"):
+			continue
 		print(server_ip)
 
 	elif cmd[:6] == "getkey":
@@ -127,6 +134,8 @@ while True:
 		kdc_response = s.recv(20480).decode("utf-8")
 		kdc_response = decrypt(kdc_response, my_secret_key)
 		print(kdc_response)
+		if(kdc_response[:7] == "Invalid"):
+			continue
 		kdc_response = kdc_response.strip('][').split(', ') 
 
 		nonce = int(kdc_response[0].replace('\'',''))

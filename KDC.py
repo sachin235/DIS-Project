@@ -15,7 +15,7 @@ all_client_id = []
 map_server_key = {'192.168.1.108': 14} # IP address of the server and respective key, key is not a multiple 10
 map_client_key = {'12345': 15, '54321': 16} #User ID of size 5 and respective key
 
-map_file_name_server = {'example.txt': '192.168.1.108', 'new.txt': '192.168.1.108'} # File name to respective server
+map_file_name_server = {'KDC.py': '192.168.1.108', 'server.py': '192.168.1.108', 'client.py': '192.168.1.108', 'new': '192.168.1.108'} # File name to respective server
 
 def encrypt(s, key):
 	key = key % 26
@@ -154,22 +154,30 @@ def listen_for_requests():
 				conn.send(str.encode(encrypt(str(map_file_name_server.keys()), client_key)))
 
 			elif client_response[:5] == "getip":
-				if map_file_name_server[client_response[6:]] is not None:
-					conn.send(str.encode(encrypt(map_file_name_server[client_response[6:]], client_key)))
-				else:
+				try:
+					map_file_name_server[client_response[6:]]
+				except Exception as e:
 					conn.send(str.encode(encrypt("Invalid File Name", client_key)))
+					continue
+
+				conn.send(str.encode(encrypt(map_file_name_server[client_response[6:]], client_key)))
 
 			elif client_response[:6] == "getkey":
-				if map_client_key[client_response[10:15]] is None:
+				try:
+					map_client_key[client_response[10:15]]
+				except Exception as e:
 					conn.send(str.encode(encrypt("Invalid User ID", client_key)))
 					continue
-				elif map_server_key[client_response[16:]] is None :
+
+				try:
+					map_server_key[client_response[16:]]
+				except Exception as e:
 					conn.send(str.encode(encrypt("Invalid IP address", client_key)))
 					continue
-				else:
-					message = create_session(client_response)
-					print(message)
-					conn.send(str.encode(message))
+
+				message = create_session(client_response)
+				print(message)
+				conn.send(str.encode(message))
 
 			elif client_response == "quit":
 				conn.close()
