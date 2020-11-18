@@ -48,6 +48,7 @@ def decrypt(s, key):
 def create_socket():
 
 	try:
+		print("Creating Socket")
 		global host
 		global port
 		global s
@@ -91,21 +92,21 @@ def accepting_connections():
 
 			emessage = conn.recv(20480).decode("utf-8")
 			dmessage = decrypt(emessage, my_secret_key)
-			print(dmessage)
+			print("Message sent by client: " + str(dmessage))
 			session_key = None
 			try:
 				session_key = int(dmessage[:2])
-				print(session_key)
+				print("Session key sent by client: " + str(session_key))
 				nonce = random.randint(10,20)
 				if nonce < 10:
 					nonce = nonce + 10
 
-				print(nonce)
+				print("Value of nonce generated: " + str(nonce))
 				conn.send(str.encode(encrypt(str(nonce), session_key)))
 				response = conn.recv(20480).decode("utf-8")
 				response = decrypt(response, session_key)
 				response = int(response)
-				print(response)
+				print("Value of nonce-1 sent by client: " + str(response))
 				if response == nonce-1:
 					# Verified Successfully
 					conn.send(str.encode(encrypt("success",session_key)))
@@ -146,6 +147,7 @@ def start_turtle():
 				currentWD = all_working_dir[i]
 				os.chdir(currentWD)
 				if client_query == "quit":
+					print("Closing connection to client")
 					conn.close()
 					del all_connections[i]
 					del all_address[i]
@@ -159,7 +161,7 @@ def start_turtle():
 
 				if len(client_query) > 0:
 					cmd = subprocess.Popen(client_query[:], shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-					output_byte = cmd.stdout.read() + cmd.stderr.read()
+					output_byte = cmd.stdout.read()
 					output_str = str(output_byte, "utf-8")
 					currentWD = os.getcwd() + ">"
 					conn.send(str.encode(encrypt(output_str + currentWD, all_session_keys[i])))

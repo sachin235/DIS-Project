@@ -47,6 +47,7 @@ def decrypt(s, key):
 def create_socket():
 
 	try:
+		print("Creating Socket")
 		global host
 		global port
 		global s
@@ -68,6 +69,7 @@ def bind_socket():
 		print("Binding the port " + str(port))
 
 		s.bind((host, port))
+		print("Started to listen on port " + str(port))
 		s.listen(5)
 
 	except socket.error as msg:
@@ -175,11 +177,13 @@ def listen_for_requests():
 					conn.send(str.encode(encrypt("Invalid IP address", client_key)))
 					continue
 
+				print("Generating session key.....")
 				message = create_session(client_response)
-				print(message)
+				print("Message for server:" + str(message))
 				conn.send(str.encode(message))
 
 			elif client_response == "quit":
+				print("Closing connection to client:")
 				conn.close()
 				del all_connections[i]
 				del all_address[i]

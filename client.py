@@ -4,7 +4,7 @@ import socket
 import os
 import subprocess
 
-print("Enter your key")
+print("Enter your symmetric key")
 my_secret_key = int(input())
 
 print("To know all the commands, type in help!")
@@ -62,8 +62,10 @@ def help():
 def connect():
 	try:
 		ss = socket.socket()
+		print("Connecting to:")
 		print(server_ip)
 		print(server_port)
+		print("Connecting....")
 		ss.connect((server_ip, server_port))
 	except Exception as e:
 		print(e)
@@ -81,6 +83,7 @@ def connect():
 	else:
 		print("Nonce sent by server: " + str(response_decrypted))
 
+	print("Sending Nonce-1.....")
 	ss.send(str.encode(encrypt(str(int(response_decrypted)-1), session_key)))
 
 	response = ss.recv(20480).decode("utf-8")
@@ -96,6 +99,7 @@ def connect():
 	while True:
 		cmd = input(str(server_ip) + '> ')
 		if cmd == "quit":
+			print("Closing connection to Server")
 			ss.send(str.encode(encrypt(cmd,session_key)))
 			ss.close()
 			#sys.exit()
@@ -152,6 +156,7 @@ while True:
 		connect()
 
 	elif cmd == "quit":
+		print("closing connection to KDC")
 		s.send(str.encode(encrypt("quit", my_secret_key)))
 		s.close()
 		break
